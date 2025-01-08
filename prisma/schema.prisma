@@ -1,0 +1,85 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["omitApi"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  password     String
+  name         String
+  role         UserRole      @default(APPLICANT)
+  createdAt    DateTime      @default(now()) @map("created_at")
+  updatedAt    DateTime      @updatedAt @map("updated_at")
+  resumes      Resume[]
+  resumeLogs   ResumeLog[]
+  refreshToken RefreshToken?
+
+  @@map("users")
+}
+
+model Resume {
+  id         Int          @id @default(autoincrement())
+  authorId   Int          @map("author_id")
+  title      String
+  content    String       @db.Text
+  status     ResumeStatus @default(APPLY)
+  createdAt  DateTime     @default(now()) @map("created_at")
+  updatedAt  DateTime     @updatedAt @map("updated_at")
+  author     User         @relation(fields: [authorId], references: [id])
+  resumeLogs ResumeLog[]
+
+  @@map("resumes")
+}
+
+model ResumeLog {
+  id          Int          @id @default(autoincrement())
+  recruiterId Int          @map("recruiter_id")
+  resumeId    Int          @map("resume_id")
+  oldStatus   ResumeStatus @map("old_status")
+  newStatus   ResumeStatus @map("new_status")
+  reason      String
+  createdAt   DateTime     @default(now()) @map("created_at")
+
+  recruiter User   @relation(fields: [recruiterId], references: [id])
+  resume    Resume @relation(fields: [resumeId], references: [id])
+
+  @@map("resume_logs")
+}
+
+model RefreshToken {
+  id           Int      @id @default(autoincrement())
+  userId       Int      @unique @map("user_id")
+  refreshToken String?  @map("refresh_token")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("refresh_tokens")
+}
+
+enum UserRole {
+  APPLICANT
+  RECRUITER
+}
+
+enum ResumeStatus {
+  APPLY
+  DROP
+  PASS
+  INTERVIEW1
+  INTERVIEW2
+  FINAL_PASS
+}
